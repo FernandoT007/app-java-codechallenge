@@ -1,25 +1,70 @@
-version: "3.7"
-services:
-  postgres:
-    image: postgres:14
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+services: 
+  # Servicio de Zookeeper (necesario para Kafka)
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.5.3
+    image: confluentinc/cp-zookeeper:7.2.1
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-  kafka:
-    image: confluentinc/cp-enterprise-kafka:5.5.3
-    depends_on: [zookeeper]
-    environment:
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_BROKER_ID: 1
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_JMX_PORT: 9991
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - 9092:9092
+      - "2181:2181"
+    networks:
+      - kafka-java
+
+  # Servicio de Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.2.1
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: LISTENER_LOCAL://0.0.0.0:9092,LISTENER_DOCKER://kafka:29092  # Nombres únicos para los listeners
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_LOCAL://localhost:9092,LISTENER_DOCKER://kafka:29092  # Mantén los nombres únicos
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_LOCAL:PLAINTEXT,LISTENER_DOCKER:PLAINTEXT  # Protocolo de seguridad para cada listener
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER  # Listener para la comunicación entre brokers
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+      - "29092:29092"  # Puerto para el acceso dentro del contenedor
+    networks:
+      - kafka-java
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:3.30.0
+    environment:
+      KAFKA_BROKER_CONNECT: kafka:29092
+    ports:
+      - "9000:9000"
+    depends_on:
+      - kafka
+    networks:
+      - kafka-java
+
+  # Servicio de Redis
+  redis:
+    image: redis:6.2.6
+    ports:
+      - "6379:6379"
+    networks:
+      - kafka-java
+
+  # Servicio de PostgreSQL
+  postgres:
+    image: postgres:13.4
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: transaction_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - kafka-java
+
+volumes:
+  postgres-data:
+
+networks:
+  kafka-java:
+    driver: bridge

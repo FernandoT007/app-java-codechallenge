@@ -1,0 +1,19 @@
+type Query {
+    getTransaction(transactionExternalId: ID!): TransactionResponse
+}
+
+type TransactionResponse {
+    transactionExternalId: ID!
+    transactionType: TransactionTypeResponse!
+    transactionStatus: TransactionStatusResponse!
+    value: Float!
+    createdAt: String!
+}
+
+type TransactionTypeResponse {
+    name: String!
+}
+
+type TransactionStatusResponse {
+    name: String!
+}
