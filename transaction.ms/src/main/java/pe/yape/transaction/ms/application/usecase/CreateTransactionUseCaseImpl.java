@@ -27,7 +27,7 @@ public class CreateTransactionUseCaseImpl implements CreateTransactionUseCase {
 
         Transaction transaction = Transaction.create(accountExternalIdDebit,accountExternalIdCredit,transferType,value);
         Transaction savedTransaction = transactionRepository.save(transaction);
-        cacheRepository.cache(savedTransaction.getTransactionExternalId(),savedTransaction);
+        cacheRepository.save(savedTransaction.getTransactionExternalId(),savedTransaction);
         TransactionCreatedEvent event = transactionMapper.domainToEvent(savedTransaction);
         eventPublisher.publishEvent(event);
         return savedTransaction;

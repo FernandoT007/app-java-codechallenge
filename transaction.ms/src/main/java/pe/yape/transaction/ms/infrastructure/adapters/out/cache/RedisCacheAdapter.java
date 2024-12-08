@@ -14,7 +14,7 @@ public class RedisCacheAdapter<T> implements CacheRepository<T> {
     private final RedisTemplate<String,T> redisTemplate;
 
     @Override
-    public void cache(UUID key, T transaction) {
+    public void save(UUID key, T transaction) {
         redisTemplate.opsForValue().set(key.toString(), transaction);
     }
 
@@ -23,4 +23,11 @@ public class RedisCacheAdapter<T> implements CacheRepository<T> {
     public T getCached(UUID key) {
         return redisTemplate.opsForValue().get(key.toString());
     }
+
+    @Override
+    public void delete(UUID key) {
+        redisTemplate.delete(key.toString());
+    }
+
+
 }
